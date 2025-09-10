@@ -1,188 +1,144 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>에너지 링크 (Energy Link)</title>
-  <style>
-    body { text-align:center; font-family:Arial; background:#f0f0f0; }
-    h1 { margin-top:20px; }
-    #board { margin:20px auto; border:2px solid #333; display:grid; grid-template-columns: repeat(6, 60px); grid-gap:2px; background:#ccc; width: max-content; }
-    .cell { width:60px; height:60px; background:#fff; display:flex; align-items:center; justify-content:center; font-weight:bold; cursor:pointer; border:1px solid #999; position:relative;}
-    .player-token { width:20px; height:20px; border-radius:50%; position:absolute; bottom:2px; right:2px; }
-    #hand { margin:20px auto; display:flex; gap:10px; justify-content:center; }
-    .card { padding:10px; border-radius:6px; cursor:pointer; font-weight:bold; }
-    .energy { color:#fff; }
-    #log { width:60%; height:120px; margin:20px auto; overflow-y:auto; border:1px solid #999; padding:10px; background:#fff; text-align:left;}
-    button { padding:8px 16px; margin:5px; cursor:pointer; border-radius:6px; border:none; background:#007bff; color:#fff; font-weight:bold;}
-    button:hover { background:#0056b3; }
-    #score { margin-top:10px; font-weight:bold;}
-  </style>
+<meta charset="UTF-8">
+<title>섀도우 링크 (Shadow Link)</title>
+<style>
+  body { text-align:center; font-family:Arial; background:#f0f0f0; }
+  h1 { margin-top:20px; }
+  #board { margin:20px auto; display:grid; grid-template-columns: repeat(8, 50px); grid-gap:2px; width:max-content; }
+  .cell { width:50px; height:50px; background:#fff; border:1px solid #999; display:flex; align-items:center; justify-content:center; font-weight:bold; cursor:pointer; position:relative;}
+  .token { width:40px; height:40px; border-radius:50%; }
+  .highlight { outline:3px solid yellow; }
+  #log { width:60%; height:120px; margin:20px auto; overflow-y:auto; border:1px solid #999; padding:10px; background:#fff; text-align:left;}
+</style>
 </head>
 <body>
-  <h1>🎮 에너지 링크 (Energy Link)</h1>
-  <p>턴별로 에너지 카드를 놓아 네트워크를 확장하고 점수를 획득하세요. 특수 카드를 전략적으로 사용!</p>
-  <div id="score"></div>
-  <div id="board"></div>
-  <div id="hand"></div>
-  <button onclick="endTurn()">턴 종료</button>
-  <div id="log"></div>
+<h1>섀도우 링크 (Shadow Link)</h1>
+<p>토큰 3개 직선 연결 시 승리합니다. 토큰 클릭 후 이동할 칸을 선택하세요.</p>
+<div id="board"></div>
+<div id="log"></div>
 
 <script>
-const boardSize = 6;
-let board = [];
-let players = [
-  {id:0, name:"플레이어1", color:"#e74c3c", hand:[], score:0},
-  {id:1, name:"플레이어2", color:"#3498db", hand:[], score:0}
-];
-let currentPlayer = 0;
-let deck = [];
-let logBox = document.getElementById("log");
-const energyColors = ["red","blue","yellow","green"];
-const specialTypes = ["막힘","강화","전환","리셋"];
+const boardSize=8;
+let board=[];
+let currentPlayer=0;
+let selectedToken=null;
+const logBox=document.getElementById("log");
 
-// 로그
-function log(message){ logBox.innerHTML += message+"<br>"; logBox.scrollTop = logBox.scrollHeight; }
+function log(message){ logBox.innerHTML+=message+"<br>"; logBox.scrollTop=logBox.scrollHeight; }
 
-// 보드 초기화
-const boardDiv = document.getElementById("board");
+const boardDiv=document.getElementById("board");
+
+// 보드 초기화 및 렌더링
 function createBoard(){
-  board = [];
   boardDiv.innerHTML="";
+  board=[];
   for(let r=0;r<boardSize;r++){
     for(let c=0;c<boardSize;c++){
-      const cell = {row:r, col:c, owner:null, color:null};
-      board.push(cell);
-      const div = document.createElement("div");
+      const cell={row:r,col:c,owner:null,div:null};
+      const div=document.createElement("div");
       div.className="cell";
       div.dataset.row=r;
       div.dataset.col=c;
       div.onclick=()=>cellClick(r,c);
+      cell.div=div;
+      board.push(cell);
       boardDiv.appendChild(div);
     }
   }
 }
 createBoard();
 
-// 덱 생성
-function createDeck(){
-  deck=[];
-  for(let i=0;i<energyColors.length;i++){
-    for(let j=0;j<6;j++) deck.push({type:"energy", color:energyColors[i]});
-  }
-  for(let i=0;i<specialTypes.length;i++){
-    for(let j=0;j<4;j++) deck.push({type:"special", name:specialTypes[i]});
-  }
-  deck.sort(()=>Math.random()-0.5);
-}
-createDeck();
-
-// 카드 뽑기
-function drawCard(player){
-  if(deck.length===0) createDeck();
-  const card = deck.pop();
-  player.hand.push(card);
-  renderHand();
-}
-
-// 초기 카드 3장씩
-players.forEach(p=>{ drawCard(p); drawCard(p); drawCard(p); });
-
-// 핸드 렌더링
-const handDiv = document.getElementById("hand");
-let selectedCardIndex = null;
-function renderHand(){
-  handDiv.innerHTML="";
-  players[currentPlayer].hand.forEach((card,i)=>{
-    const cdiv=document.createElement("div");
-    cdiv.className="card";
-    cdiv.innerText=card.type==="energy"?card.color:card.name;
-    cdiv.style.background=card.type==="energy"?card.color:"#555";
-    cdiv.style.color=card.type==="energy"?"#fff":"#fff";
-    cdiv.onclick=()=>{ selectedCardIndex=i; };
-    handDiv.appendChild(cdiv);
+// 초기 토큰 배치
+function placeInitialTokens(){
+  board.forEach(cell=>{
+    if(cell.row<2){ cell.owner=0; }
+    else if(cell.row>=boardSize-2){ cell.owner=1; }
   });
-  updateScore();
+  renderBoard();
 }
-
-// 점수 계산
-function updateScore(){
-  players.forEach(p=>{
-    let total=0;
-    board.forEach(cell=>{
-      if(cell.owner===p.id && cell.color===cell.color){
-        total++; // 기본 1점/셀
-      }
-    });
-    p.score=total;
-  });
-  document.getElementById("score").innerText=players.map(p=>`${p.name}: ${p.score}`).join(" | ");
-}
-
-// 셀 클릭 처리
-function cellClick(row,col){
-  if(selectedCardIndex===null){ log("카드를 선택하세요."); return;}
-  const cell = board.find(c=>c.row===row && c.col===col);
-  if(cell.owner!==null){ log("이미 차지된 칸입니다."); return;}
-  const card = players[currentPlayer].hand[selectedCardIndex];
-  if(card.type==="energy"){
-    cell.owner=currentPlayer;
-    cell.color=card.color;
-    players[currentPlayer].hand.splice(selectedCardIndex,1);
-    selectedCardIndex=null;
-    renderBoard();
-    renderHand();
-    log(`${players[currentPlayer].name}이 ${card.color} 에너지 놓음.`);
-  } else {
-    // 특수 카드
-    if(card.name==="막힘"){
-      cell.owner=2; // 2=막힘
-      cell.color="#000";
-      log(`${players[currentPlayer].name}이 막힘 카드를 사용함.`);
-    } else if(card.name==="강화"){
-      cell.owner=currentPlayer;
-      cell.color="#fff";
-      log(`${players[currentPlayer].name}이 강화 카드를 사용함 (점수 두 배).`);
-    } else if(card.name==="전환"){
-      if(cell.owner===currentPlayer){
-        const newColor=energyColors[Math.floor(Math.random()*4)];
-        cell.color=newColor;
-        log(`${players[currentPlayer].name}이 전환 카드로 색 변경: ${newColor}`);
-      } else { log("자신 칸에서만 사용 가능"); return;}
-    } else if(card.name==="리셋"){
-      if(cell.owner===currentPlayer){
-        cell.owner=null; cell.color=null;
-        log(`${players[currentPlayer].name}이 리셋 카드 사용`);
-      } else { log("자신 칸에서만 사용 가능"); return;}
-    }
-    players[currentPlayer].hand.splice(selectedCardIndex,1);
-    selectedCardIndex=null;
-    renderBoard();
-    renderHand();
-  }
-}
+placeInitialTokens();
 
 // 보드 렌더링
 function renderBoard(){
   board.forEach(c=>{
-    const div = document.querySelector(`.cell[data-row='${c.row}'][data-col='${c.col}']`);
-    if(c.owner===null){ div.style.background="#fff"; div.innerText=""; div.innerHTML=""; }
-    else if(c.owner===2){ div.style.background="#000"; div.innerText="X"; }
-    else{ div.style.background=c.color; div.innerText=""; }
+    const div=c.div;
+    div.innerHTML="";
+    div.classList.remove("highlight");
+    if(c.owner!==null){
+      const token=document.createElement("div");
+      token.className="token";
+      token.style.background=c.owner===0?"black":"white";
+      div.appendChild(token);
+    }
   });
-  updateScore();
+  if(selectedToken) highlightMoves(selectedToken);
 }
 
-// 턴 종료
-function endTurn(){
-  drawCard(players[currentPlayer]);
-  currentPlayer=(currentPlayer+1)%players.length;
-  log(`턴 종료 → ${players[currentPlayer].name} 차례`);
-  renderHand();
+// 클릭 처리
+function cellClick(row,col){
+  const cell=board.find(c=>c.row===row && c.col===col);
+  if(selectedToken){
+    if(cell.div.classList.contains("highlight")){
+      // 이동
+      cell.owner=currentPlayer;
+      selectedToken.owner=null;
+      log(`플레이어 ${currentPlayer+1} 이동 완료`);
+      selectedToken=null;
+      renderBoard();
+      if(checkWin(currentPlayer)){ log(`🎉 플레이어 ${currentPlayer+1} 승리!`); return; }
+      currentPlayer=(currentPlayer+1)%2;
+      log(`턴 변경 → 플레이어 ${currentPlayer+1} 차례`);
+    } else { log("유효한 칸을 선택하세요."); selectedToken=null; renderBoard(); }
+  } else {
+    if(cell.owner===currentPlayer){
+      selectedToken=cell;
+      renderBoard();
+      log("토큰 선택됨");
+    } else { log("자신의 토큰만 선택 가능합니다."); }
+  }
+}
+
+// 이동 가능 칸 하이라이트
+function highlightMoves(cell){
+  const directions=[[-1,0],[1,0],[0,-1],[0,1]];
+  directions.forEach(([dr,dc])=>{
+    const nr=cell.row+dr, nc=cell.col+dc;
+    if(nr>=0 && nr<boardSize && nc>=0 && nc<boardSize){
+      const target=board.find(c=>c.row===nr && c.col===nc);
+      if(target.owner===null) target.div.classList.add("highlight");
+    }
+  });
+}
+
+// 승리 체크 (가로, 세로, 대각선)
+function checkWin(player){
+  for(let r=0;r<boardSize;r++){
+    for(let c=0;c<boardSize;c++){
+      if(board.find(b=>b.row===r && b.col===c && b.owner===player)){
+        if(checkLine(r,c,0,1,player)) return true; // 가로
+        if(checkLine(r,c,1,0,player)) return true; // 세로
+        if(checkLine(r,c,1,1,player)) return true; // 대각선 우하
+        if(checkLine(r,c,1,-1,player)) return true; // 대각선 좌하
+      }
+    }
+  }
+  return false;
+}
+
+function checkLine(r,c,dr,dc,player){
+  for(let i=1;i<3;i++){
+    const nr=r+dr*i, nc=c+dc*i;
+    if(nr<0||nr>=boardSize||nc<0||nc>=boardSize) return false;
+    const cell=board.find(b=>b.row===nr && b.col===nc);
+    if(!cell || cell.owner!==player) return false;
+  }
+  return true;
 }
 
 renderBoard();
-renderHand();
-log("게임 시작! 플레이어1 차례");
+log("게임 시작! 플레이어 1 차례");
 </script>
 </body>
 </html>
