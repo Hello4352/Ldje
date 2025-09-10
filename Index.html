@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Hexa Quest</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+    }
+    h1 { margin-top: 20px; }
+    canvas {
+      border: 2px solid #333;
+      margin-top: 20px;
+      background: #fff;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #log {
+      margin-top: 20px;
+      height: 120px;
+      width: 60%;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background: #fff;
+      display: inline-block;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Hexa Quest</h1>
+  <p>두 명의 플레이어가 주사위를 굴려 보드를 이동합니다. 먼저 목표 칸에 도착하면 승리!</p>
+  <button onclick="rollDice()">주사위 굴리기</button>
+  <p id="turnInfo">현재 턴: 플레이어 1</p>
+  <canvas id="board" width="600" height="600"></canvas>
+  <div id="log"></div>
+
+  <script>
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d");
+
+    const hexRadius = 40;
+    const boardRows = 3;
+    const boardCols = 3;
+    let cells = [];
+    let players = [
+      {pos: 0, color: "red"},
+      {pos: 0, color: "blue"}
+    ];
+    let currentPlayer = 0;
+    let gameOver = false;
+
+    // 로그 출력 함수
+    function log(message) {
+      const logBox = document.getElementById("log");
+      logBox.innerHTML += message + "<br>";
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    // 육각형 그리기
+    function drawHex(x, y, size, color, text) {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        let angle = Math.PI / 3 * i;
+        let px = x + size * Math.cos(angle);
+        let py = y + size * Math.sin(angle);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.stroke();
+
+      // 텍스트 표시
+      ctx.fillStyle = "black";
+      ctx.font = "14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(text, x, y+5);
+    }
+
+    // 보드 초기화
+    function createBoard() {
+      cells = [];
+      let index = 0;
+      for (let r = 0; r < boardRows; r++) {
+        for (let c = 0; c < boardCols; c++) {
+          let x = 100 + c * hexRadius * 1.5;
+          let y = 100 + r * hexRadius * 1.7 + (c % 2 === 0 ? 0 : hexRadius * 0.85);
+          cells.push({x, y, index});
+          index++;
+        }
+      }
+    }
+
+    // 보드 그리기
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      cells.forEach(cell => {
+        let color = "#e0e0e0";
+        if (cell.index === cells.length - 1) color = "#90ee90"; // 목표 칸
+        drawHex(cell.x, cell.y, hexRadius, color, cell.index);
+      });
+      drawPlayers();
+    }
+
+    // 플레이어 표시
+    function drawPlayers() {
+      players.forEach((player, i) => {
+        let cell = cells[player.pos];
+        ctx.beginPath();
+        ctx.arc(cell.x, cell.y, 15, 0, 2 * Math.PI);
+        ctx.fillStyle = player.color;
+        ctx.fill();
+        ctx.stroke();
+      });
+    }
+
+    // 주사위 굴리기
+    function rollDice() {
+      if (gameOver) return;
+      let dice = Math.floor(Math.random() * 6) + 1;
+      log(`플레이어 ${currentPlayer+1} 주사위: ${dice}`);
+      movePlayer(currentPlayer, dice);
+    }
+
+    // 플레이어 이동
+    function movePlayer(playerIndex, steps) {
+      players[playerIndex].pos += steps;
+      if (players[playerIndex].pos >= cells.length - 1) {
+        players[playerIndex].pos = cells.length - 1;
+        drawBoard();
+        log(`🎉 플레이어 ${playerIndex+1} 승리!`);
+        document.getElementById("turnInfo").textContent = `게임 종료`;
+        gameOver = true;
+        return;
+      }
+      drawBoard();
+      currentPlayer = (currentPlayer + 1) % players.length;
+      document.getElementById("turnInfo").textContent = `현재 턴: 플레이어 ${currentPlayer+1}`;
+    }
+
+    // 시작
+    createBoard();
+    drawBoard();
+  </script>
+</body>
+</html>
