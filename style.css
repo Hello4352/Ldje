@@ -1,50 +1,92 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f0f0f0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  text-align: center;
+:root { --cell:56px; --gap:6px; --board-bg:#222; --panel-bg:#fff; --accent:#0b5cff; }
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Arial;
+  background:#f3f6f8;
+  color:#111;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
 
-.menu, .rules, .game-container {
-  background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+/* 메인/룰 패널 */
+.menu, .panel {
+  max-width:760px;
+  margin:48px auto;
+  background:var(--panel-bg);
+  padding:28px;
+  border-radius:12px;
+  box-shadow:0 8px 30px rgba(10,20,40,0.06);
+  text-align:center;
+}
+.menu h1, .panel h1 { margin:0 0 12px; }
+.btns{margin-top:18px;}
+button{
+  background:var(--accent);
+  color:white;
+  border:none;
+  padding:10px 16px;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
+  margin:6px;
+}
+button:active{transform:translateY(1px)}
+
+/* 게임 화면: 중앙 정렬 */
+.game-container{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  padding:24px;
 }
 
-button {
-  padding: 10px 20px;
-  margin: 10px;
-  font-size: 16px;
-  cursor: pointer;
+/* 보드 래퍼는 가로세로 중앙 배치 */
+.board-wrap{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
 }
 
-#board {
-  display: grid;
-  grid-template-columns: repeat(10, 50px);
-  grid-template-rows: repeat(10, 50px);
-  margin: 20px auto;
-  border: 2px solid #333;
+/* 보드 그리드 */
+#board{
+  display:grid;
+  grid-template-columns: repeat(10, var(--cell));
+  grid-auto-rows: var(--cell);
+  gap: var(--gap);
+  background: var(--board-bg);
+  padding:10px;
+  border-radius:10px;
 }
 
-.cell {
-  width: 50px;
-  height: 50px;
-  border: 1px solid #aaa;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 14px;
+/* 셀 스타일 */
+.cell{
+  background:#fff;
+  border-radius:8px;
+  width:var(--cell);
+  height:var(--cell);
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-start;
+  padding:6px;
+  position:relative;
+  cursor:default;
+  font-size:12px;
+  color:#222;
 }
 
-.core1 {
-  background: red;
-}
+/* 좌측 상단 좌표 레이블 */
+.cell .coord{ position:absolute; left:6px; top:6px; font-size:11px; color:#666; }
 
-.core2 {
-  background: blue;
-}
+/* 코어 표시 */
+.core1{ background: linear-gradient(180deg,#ffecec,#ffdede); border:2px solid #ff7b7b; }
+.core2{ background: linear-gradient(180deg,#eaf4ff,#d6ecff); border:2px solid #7bb7ff; }
+
+/* 디버그 로그 */
+.debug{ margin-top:12px; width:760px; max-width:90vw; background:#fff; padding:10px; border-radius:8px; border:1px solid #eef2ff; min-height:40px; overflow:auto; font-size:13px; color:#0b3b66;}
+#status{font-weight:700;margin-bottom:8px;}
