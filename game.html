@@ -1,16 +1,31 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>게임 시작</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>아스트라 워즈 — 게임</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="game-container">
-    <h1>게임 보드</h1>
-    <div id="board"></div>
-    <button onclick="location.href='index.html'">메뉴로</button>
+    <header>
+      <h1>아스트라 워즈 — 보드</h1>
+    </header>
+
+    <section class="board-wrap">
+      <div id="board" aria-label="game-board"></div>
+    </section>
+
+    <section class="controls">
+      <div id="status">상태: 준비됨</div>
+      <div class="btns">
+        <button id="btnReset">리셋 (R)</button>
+        <button onclick="location.href='index.html'">메뉴로</button>
+      </div>
+      <div id="debugLog" class="debug"></div>
+    </section>
   </div>
+
   <script src="game.js"></script>
 </body>
 </html>
